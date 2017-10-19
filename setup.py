@@ -16,6 +16,7 @@ setup(
                       'jieba',
                       'retrying',
                       'requests',
+                      'lxml',
                       ],
 
     description='The basic library for Sora',
