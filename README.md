@@ -83,7 +83,7 @@ Then you can use your phone number and your password to login your trade account
 >>> from stockclib.ftTrader import *
 >>> t = FtnnTrader(YOUR_PHONE_NUMBER,YOUR_PASSWD,GECKODRIVER_PATH,TIMEOUT,DEBUG)
 >>> t.login()
-{'geckopath': '/root/gecko/geckodriver', 'login': True, 'account': '13126243082'}
+{'geckopath': '/root/gecko/geckodriver', 'login': True, 'account': 'xxx'}
 >>> t.zbid('000858','75.00','200')
 ```
 
