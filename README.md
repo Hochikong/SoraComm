@@ -1,4 +1,4 @@
-StockClib
+StockClib 0.2
 =========
 Project Sora depends on this library.Include three modules:  
 - dtSearch
