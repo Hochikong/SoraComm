@@ -1,6 +1,6 @@
 StockClib 0.2
 =========
-Project Sora depends on this library.Include three modules:  
+Project Sora depends on this library. Include three modules:  
 - dtSearch
 - dtLib
 - ftTrader
@@ -61,9 +61,9 @@ Then you run the setup.py again and done.
 wget https://github.com/mozilla/geckodriver/releases/download/v0.19.1/geckodriver-v0.19.1-linux64.tar.gz
 tar xvf geckodriver-v0.19.1-linux64.tar.gz
 ```
-Once you uncompress the tar.gz file,you will see a geckodriver in your current directory.Just move it to a proper place such as /usr/local/bin. 
+Once you uncompress the tar.gz file, you will see a geckodriver in your current directory. Just move it to a proper place such as /usr/local/bin. 
 
-Then finish Firefox's installation(I assume that you are using Ubuntu or Debian) 
+Then finish Firefox's installation (I assume that you are using Ubuntu or Debian) 
 ```
 apt-get update
 apt-get install firefox -y
@@ -93,11 +93,11 @@ Let me explain what I did the example above:
 
 2. Create a trader substance with your user name(your phone number) and your password.  
 
-3. If you want to run it with debug mode,you can use an empty string as geckodriver path then set debug=True,then Firefox will run with GUI.If you want to run it on server,you should run FF as headless mode by declaring the legal geckodriver path and ignore the debug parameter.
+3. If you want to run it with debug mode, you can use an empty string as geckodriver path then set debug=True, then Firefox will run with GUI.If you want to run it on server, you should run FF with headless mode by declaring the legal geckodriver path and ignore the debug parameter.
 
-4. Once you initial the trader substance,then login()
+4. Once you initial the trader substance, then login()
 
-5. Create an bid order.I want to buy the stock 000858(五粮液) at 75￥,2 100-Share board lot.
+5. Create an bid order. I want to buy the stock 000858(五粮液) at 75￥, 2 100-Share board lot.
 
 6. Let's check my account:
 
@@ -108,25 +108,25 @@ You can also use zoffer create offer order:
 >>>  t.zoffer('000725','6.2','100')
 ```
 
-If you want to cancel the orders which still waiting for exchange,you can use zcancel() to cancel a specify order:
+If you want to cancel the orders which still waiting for exchange, you can use zcancel() to cancel a specify order:
 ```
 >>> t.zcancel(1)
 ```
-Due to the website,the latest offer order's position is 1,hence my bid order's position is 2,just like stack(speak frankly,totally not like,because you can select position).  
+Due to the website, the latest offer order's position is 1, hence my bid order's position is 2, just like stack(speak frankly,totally not like, because you can select position).  
 
-Briefly,the latest order's position is always 1.
+Briefly, the latest order's position is always 1.
 
-But sometimes you may want a 'one click cancellation',the you can use zcancel_all(): 
+But sometimes you may want a 'one click cancellation', then you can use zcancel_all(): 
 
 ```
 >>> t.zcancel_all()
 ```
 
-Finally,you can use halt() to stop the FF:
+Finally, you can use halt() to stop the FF:
 ```
 >>> t.halt()
 ```
 
 ### 3.Warning
-1. ftTrader is a stateless and no assurance library.I mean you need to store all exchange info by yourselves.You should use legal price,amount.After create orders,you should check the orders' status by yourself.You need to maintain a dict or list in order to cancel your orders.
-2. Only support stock which the code start with 30,00,60,such as 000725,600001 and 300091.(仅支持A股沪深主板、中小板和创业板)
+1. ftTrader is a stateless and no assurance library. I mean you need to store all exchange info by yourselves.You should use legal price, amount. After create orders, you should check the orders' status by yourself. You need to maintain a dict or list in order to cancel your orders.
+2. Only support stock which the code start with 30, 00, 60,such as 000725,600001 and 300091.(仅支持A股沪深主板、中小板和创业板)
