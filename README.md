@@ -72,13 +72,13 @@ apt-get install firefox -y
 ##Usage
 I only show the use case of ftTrader to you below
 
-##1.Create a stock exchange account(simulation)
+###Create a stock exchange account(simulation)
 Visit 富途证券's website and sign in with your phone number: 
 [Here](https://passport.futu5.com/?target=https%3A%2F%2Fwww.futunn.com%2F#reg)
 
 Then you can use your phone number and your password to login your trade account.  
 
-##2.Using python console try ftTrader
+###Using python console try ftTrader
 ```
 >>> from stockclib.ftTrader import *
 >>> t = FtnnTrader(YOUR_PHONE_NUMBER,YOUR_PASSWD,GECKODRIVER_PATH,TIMEOUT,DEBUG)
@@ -127,6 +127,6 @@ Finally,you can use halt() to stop the FF:
 >>> t.halt()
 ```
 
-##3.Warning
+###Warning
 1. ftTrader is a stateless and no assurance library.I mean you need to store all exchange info by yourselves.You should use legal price,amount.After create orders,you should check the orders' status by yourself.You need to maintain a dict or list in order to cancel your orders.
 2. Only support stock which the code start with 30,00,60,such as 000725,600001 and 300091.(仅支持A股沪深主板、中小板和创业板)
