@@ -79,7 +79,7 @@ def buy_or_sell(browser, ops):
         browser.find_element_by_xpath("//*[@id='confirmDialog']/div[3]/span[2]/button[1]").click()
         # final confirm
         browser.find_element_by_xpath("/html/body/div[12]/div[3]/button").click()
-    else:
+    if ops != 'offer' and ops != 'bid':
         raise Exception('Wrong ops')
 
 
@@ -118,7 +118,7 @@ class FtnnTrader(object):
         self.__login = True
         return self.check_details()
 
-    def cn_bid(self, code, price, amount):
+    def zbid(self, code, price, amount):
         """
         A股的买函数
         :param code: 股票代码
@@ -144,7 +144,7 @@ class FtnnTrader(object):
 
         buy_or_sell(self.__browser, ops='bid')
 
-    def cn_offer(self, code, price, amount):
+    def zoffer(self, code, price, amount):
         """
         A股的卖函数
         :param code: 股票代码
@@ -170,7 +170,7 @@ class FtnnTrader(object):
 
         buy_or_sell(self.__browser, ops='offer')
 
-    def cn_cancel(self, order_post):
+    def zcancel(self, order_post):
         """
         指定位置的单的撤销
         :param order_post: 在网页上排列的顺序，和堆栈一样
@@ -185,7 +185,7 @@ class FtnnTrader(object):
         # confirm cancellation
         self.__browser.find_element_by_xpath("/html/body/div[4]/div[3]/span[2]/button[1]").click()
 
-    def cn_cancel_all(self):
+    def zcancel_all(self):
         """
         一键撤全部单
         :return:

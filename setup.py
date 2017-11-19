@@ -17,6 +17,7 @@ setup(
                       'retrying',
                       'requests',
                       'lxml',
+                      'selenium'
                       ],
 
     description='The basic library for Sora',
