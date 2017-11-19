@@ -73,7 +73,7 @@ apt-get install firefox -y
 I only show the use case of ftTrader to you below
 
 ### 1.Create a stock exchange account(simulation)
-Visit 富途证券's website and sign in with your phone number: 
+Visit 富途证券's website and sign up with your phone number: 
 [Here](https://passport.futu5.com/?target=https%3A%2F%2Fwww.futunn.com%2F#reg)
 
 Then you can use your phone number and your password to login your trade account.  
