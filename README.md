@@ -1,9 +1,15 @@
-StockClib 0.2
+StockClib 0.3
 =========
 Project Sora depends on this library. Include three modules:  
 - dtSearch
 - dtLib
 - ftTrader
+- omServ
+
+## Change log
+- 0.3:   
+Add omServ for order matching server  
+Disable parallel jieba
 
 ## Platform and dependence
 - Platform:  
