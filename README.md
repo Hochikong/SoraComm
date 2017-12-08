@@ -1,6 +1,6 @@
 StockClib 0.3
 =========
-Project Sora depends on this library. Include three modules:  
+Project Sora depends on this library. Include these modules:  
 - dtSearch
 - dtLib
 - ftTrader
