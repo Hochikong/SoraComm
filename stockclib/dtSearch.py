@@ -17,7 +17,7 @@ import jieba
 industries_url = 'http://www.wedengta.com/rankCommonList/hotIndustry.html'
 url_prefix = 'http://www.wedengta.com'
 page_url = 'http://www.wedengta.com/stockDetail/%s/news/1.html'
-jieba.enable_parallel(2)
+#jieba.enable_parallel(2)
 
 
 # ---------------------------

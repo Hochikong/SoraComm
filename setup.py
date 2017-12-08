@@ -17,7 +17,10 @@ setup(
                       'retrying',
                       'requests',
                       'lxml',
-                      'selenium'
+                      'selenium',
+                      'pymongo',
+                      'flask',
+                      'tushare'
                       ],
 
     description='The basic library for Sora',
