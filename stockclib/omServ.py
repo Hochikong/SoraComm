@@ -6,13 +6,14 @@
 # @Software: PyCharm
 
 from flask import json
+from functools import reduce
+from datetime import datetime
 import uuid
 import random
 import string
 import time
 import pymongo
 import tushare
-import datetime
 
 
 def generate_random_str(length):
@@ -149,23 +150,26 @@ def check_orders(jdict, authinfo, taxR, feeR, positions):
             positions = positions['position']
             position_codes = [p['code'] for p in positions]
             if order['code'] in position_codes:
-                ordertotal = round(int(order['amount']) * float(jdict['price']), 2)
-                ordertax = round(ordertotal * taxR, 2)
-                orderfee = round(ordertotal * feeR, 2)
+                amount_to_code = [int(p['amount']) for p in positions if order['code'] in list(p.values())][0]
+                if amount_to_code < int(order['amount']):  # 检查股票数量够不够卖
+                    return {'status': 'Error', 'msg': "You don't have enough amount to sell"}
+                else:
+                    ordertotal = round(int(order['amount']) * float(jdict['price']), 2)
+                    ordertax = round(ordertotal * taxR, 2)
+                    orderfee = round(ordertotal * feeR, 2)
 
-                if orderfee < 5:
-                    orderfee = 5
-                order['price'] = jdict['price']
-                order['total'] = str(ordertotal)
-                order['tax'] = str(ordertax)
-                order['fee'] = str(orderfee)
-                order['cost'] = str(round(ordertax+orderfee, 2))
-                order['order_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                order['user_id'] = authinfo['user_id']
-                order['ops'] = jdict['ops']
-                order['order_id'] = generate_random_str(10)
-
-                return order
+                    if orderfee < 5:
+                        orderfee = 5
+                    order['price'] = jdict['price']
+                    order['total'] = str(ordertotal)
+                    order['tax'] = str(ordertax)
+                    order['fee'] = str(orderfee)
+                    order['cost'] = str(round(ordertax+orderfee, 2))
+                    order['order_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                    order['user_id'] = authinfo['user_id']
+                    order['ops'] = jdict['ops']
+                    order['order_id'] = generate_random_str(10)
+                    return order
             else:
                 return {'status': 'Error', 'msg': 'No such position'}
         else:
@@ -303,7 +307,7 @@ def return_for_tran_history(user_id, per_order, data):
 
 def balance_manager(traders, per_order):
     """
-    用于调整用户余额
+    获取来自position_manager的数据，用于调整用户余额
     :param traders: traders表
     :param per_order: per_order数据
     :return:
@@ -325,6 +329,16 @@ def balance_manager(traders, per_order):
 
 
 def fetch_signal(address, port, username, passwd, target_db, service_signal):
+    """
+    辅助获取omserver的信号集合
+    :param address: 地址
+    :param port: 端口，int类型
+    :param username: 用户名
+    :param passwd: 用户密码
+    :param target_db: 登陆用的数据库
+    :param service_signal: 指定的信号集合名，str类型
+    :return:
+    """
     c = mongo_auth_assistant(address, port, username, passwd, target_db)
     db = c[target_db]  # 指定的数据库
     coll_signal = db[service_signal]  # 使用该文档来识别信号
@@ -332,6 +346,20 @@ def fetch_signal(address, port, username, passwd, target_db, service_signal):
 
 
 def fetch_others(address, port, username, passwd, target_db, orders, full_history, positions, trans_history, traders):
+    """
+    功能和fetch_signal类似
+    :param address: 不再复述
+    :param port: ~
+    :param username: ~
+    :param passwd: ~
+    :param target_db: ~
+    :param orders: 指定的订单集合名，str类型
+    :param full_history: 指定的操作历史集合名，str类型
+    :param positions: 指定的仓位集合名，str类型
+    :param trans_history: 指定的交易历史集合名，str类型
+    :param traders: 指定的用户集合名，str类型
+    :return:
+    """
     c = mongo_auth_assistant(address, port, username, passwd, target_db)
     db = c[target_db]  # 指定的数据库
     cursors = {'coll_orders': db[orders],
@@ -343,6 +371,18 @@ def fetch_others(address, port, username, passwd, target_db, orders, full_histor
 
 
 def fetch_profitstat(address, port, username, passwd, target_db, traders, positions, profitstat):
+    """
+    功能与其他的fetch函数类似，参数不再复述
+    :param address:
+    :param port:
+    :param username:
+    :param passwd:
+    :param target_db:
+    :param traders:
+    :param positions:
+    :param profitstat:
+    :return:
+    """
     c = mongo_auth_assistant(address, port, username, passwd, target_db)
     db = c[target_db]
     cursors = {'coll_traders': db[traders],
@@ -352,6 +392,11 @@ def fetch_profitstat(address, port, username, passwd, target_db, traders, positi
 
 
 def compare_when_matching(per_order):  # 尚未支持融券
+    """
+    针对订单数据中的方向和价格，判定是否能成交，买单若高于现价则按现价成交，卖单若低于现价也按现价成交
+    :param per_order: 订单数据
+    :return: Wait或价格的字符串
+    """
     code = per_order['code']
     price = float(per_order['price'])
     ops = per_order['ops']
@@ -371,6 +416,12 @@ def compare_when_matching(per_order):  # 尚未支持融券
 
 
 def position_manager(per_order, positions):
+    """
+    成交时调整用户的仓位数据
+    :param per_order: 订单数据
+    :param positions: 仓位collection
+    :return: 返回的数据用于修改用户余额
+    """
     user_id = per_order['user_id']
     if per_order['ops'] == 'bid':
         data = generate_positions(per_order)
@@ -420,6 +471,12 @@ def position_manager(per_order, positions):
 
 
 def transhistory_manager(trans_history, pm_return):
+    """
+    接收来自position_manager的数据对交易信息进行记录，方便日后结算
+    :param trans_history: 交易记录集合
+    :param pm_return: pm返回的数据
+    :return:
+    """
     # 结算更新
     # 卖出结算
     if len(pm_return) == 4:
@@ -461,3 +518,83 @@ def transhistory_manager(trans_history, pm_return):
             trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
         else:
             trans_history.insert_one(pm_return)
+
+
+def real_time_profit_statistics(traders, positions):
+    """
+    提供实时总收益率和单股票的盈亏和盈亏率
+    :param traders: 用户集合
+    :param positions: 仓位集合
+    :return: 返回一个含全部用户实时损益的数据
+    """
+    stats = []
+    # 持仓用户的计算方法：持仓股票现市值之和加余额除本金
+    all_users = list(traders.find())
+    all_positions = list(positions.find())
+    # 无持仓用户计算方法： 余额与本金差值除本金
+    all_user_with_positions = [p['user_id'] for p in all_positions]  # ['user_id','user_id']
+    all_user_without_positions = [u for u in all_users if u['user_id'] not in all_user_with_positions]
+    for u in all_user_without_positions:
+        u_balance = float(u['balance'])
+        u_total = float(u['total'])
+        u_AllrateR = round((u_balance-u_total)/u_total, 3)
+        stats.append({'user_id': u['user_id'], 'stat': [{
+            'date': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            'balance': str(u_balance),
+            'AllrateR': str(u_AllrateR)}]})
+    # 计算持仓用户的收益
+    # 提取余额与本金
+    all_user_total_balance = []   # [['total', 'balance'], ['total', 'balance']]
+    for user_id in all_user_with_positions:
+        for info in all_users:
+            if user_id in list(info.values()):
+                all_user_total_balance.append({'user_id': user_id, 'data': [info['total'], info['balance']]})
+    # 提取代码、用户id、均价和数量
+    all_code_avgprice_amount = []
+    for u in all_positions:
+        for p in u['position']:
+            data = {'user_id': u['user_id'], 'caa': (p['code'], p['avgprice'], p['amount'])}
+            all_code_avgprice_amount.append(data)
+    # 更新现价
+    for i in all_code_avgprice_amount:
+        code = i['caa'][0]  # caa是代码code、成本价avgprice和数量amount
+        i['now_price'] = tushare.get_realtime_quotes(code)['price'][0]
+    # 计算现市值
+    for i in all_code_avgprice_amount:
+        now_total = int(i['caa'][2])*float(i['now_price'])
+        i['s_now_total'] = round(now_total, 2)
+    # 计算单只股票盈亏率与盈亏
+    for stock in all_code_avgprice_amount:
+        s_origin_total = round(float(stock['caa'][1])*int(stock['caa'][2]), 2)
+        delta = stock['s_now_total']-s_origin_total
+        stock_rateR = round(delta/s_origin_total, 2)
+        stock['return'] = delta
+        stock['rateR'] = stock_rateR
+    # 加上余额求差值
+    for user_id in all_user_with_positions:
+        user_id_total = [i['s_now_total'] for i in all_code_avgprice_amount if user_id in list(i.values())]
+        user_id_total = reduce(lambda x, y: x + y, user_id_total)
+        # 用户股票总市值加上余额
+        user_id_now_balance = [float(i['data'][1]) for i in all_user_total_balance if user_id in list(i.values())][0]
+        user_id_a_total = user_id_now_balance + user_id_total
+        # 本金
+        user_id_origin_total = [float(i['data'][0]) for i in all_user_total_balance if user_id in list(i.values())][0]
+        # 算收益率
+        AllrateR = round((user_id_a_total-user_id_origin_total)/user_id_origin_total, 3)
+        stat = {'user_id': user_id, 'stat': [{'date': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                                              'balance': str(user_id_now_balance),
+                                              'AllrateR': str(AllrateR)}],
+                                    'stocks_rateR': []}
+        # 写入单只股票的盈亏
+        for s in all_code_avgprice_amount:
+            datastruct = {'code': s['caa'][0],
+                          'avgprice': s['caa'][1],
+                          'amount': s['caa'][2],
+                          'current_price': s['now_price'],
+                          'current_total': str(s['s_now_total']),
+                          'return': str(s['return']),
+                          'rateR': str(s['rateR'])}
+            stat['stocks_rateR'].append(datastruct)
+        stats.append(stat)
+    return stats
+
