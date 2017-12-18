@@ -147,31 +147,34 @@ def check_orders(jdict, authinfo, taxR, feeR, positions):
                 return order
 
         elif jdict['ops'] == 'offer':
-            positions = positions['position']
-            position_codes = [p['code'] for p in positions]
-            if order['code'] in position_codes:
-                amount_to_code = [int(p['amount']) for p in positions if order['code'] in list(p.values())][0]
-                if amount_to_code < int(order['amount']):  # 检查股票数量够不够卖
-                    return {'status': 'Error', 'msg': "You don't have enough amount to sell"}
-                else:
-                    ordertotal = round(int(order['amount']) * float(jdict['price']), 2)
-                    ordertax = round(ordertotal * taxR, 2)
-                    orderfee = round(ordertotal * feeR, 2)
+            if positions:  # 防止空仓卖出的bug
+                positions = positions['position']
+                position_codes = [p['code'] for p in positions]
+                if order['code'] in position_codes:
+                    amount_to_code = [int(p['amount']) for p in positions if order['code'] in list(p.values())][0]
+                    if amount_to_code < int(order['amount']):  # 检查股票数量够不够卖
+                        return {'status': 'Error', 'msg': "You don't have enough amount to sell"}
+                    else:
+                        ordertotal = round(int(order['amount']) * float(jdict['price']), 2)
+                        ordertax = round(ordertotal * taxR, 2)
+                        orderfee = round(ordertotal * feeR, 2)
 
-                    if orderfee < 5:
-                        orderfee = 5
-                    order['price'] = jdict['price']
-                    order['total'] = str(ordertotal)
-                    order['tax'] = str(ordertax)
-                    order['fee'] = str(orderfee)
-                    order['cost'] = str(round(ordertax+orderfee, 2))
-                    order['order_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                    order['user_id'] = authinfo['user_id']
-                    order['ops'] = jdict['ops']
-                    order['order_id'] = generate_random_str(10)
-                    return order
+                        if orderfee < 5:
+                            orderfee = 5
+                        order['price'] = jdict['price']
+                        order['total'] = str(ordertotal)
+                        order['tax'] = str(ordertax)
+                        order['fee'] = str(orderfee)
+                        order['cost'] = str(round(ordertax + orderfee, 2))
+                        order['order_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                        order['user_id'] = authinfo['user_id']
+                        order['ops'] = jdict['ops']
+                        order['order_id'] = generate_random_str(10)
+                        return order
+                else:
+                    return {'status': 'Error', 'msg': 'No such position'}
             else:
-                return {'status': 'Error', 'msg': 'No such position'}
+                return {'status': 'Error', 'msg': 'No such position now'}
         else:
             return {'status': 'Error', 'msg': "Wrong ops"}
 
