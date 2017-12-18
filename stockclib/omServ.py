@@ -534,6 +534,7 @@ def real_time_profit_statistics(traders, positions):
     # 持仓用户的计算方法：持仓股票现市值之和加余额除本金
     all_users = list(traders.find())
     all_positions = list(positions.find())
+
     # 无持仓用户计算方法： 余额与本金差值除本金
     all_user_with_positions = [p['user_id'] for p in all_positions]  # ['user_id','user_id']
     all_user_without_positions = [u for u in all_users if u['user_id'] not in all_user_with_positions]
@@ -545,6 +546,7 @@ def real_time_profit_statistics(traders, positions):
             'date': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
             'balance': str(u_balance),
             'AllrateR': str(u_AllrateR)}]})
+
     # 计算持仓用户的收益
     # 提取余额与本金
     all_user_total_balance = []   # [['total', 'balance'], ['total', 'balance']]
@@ -570,7 +572,7 @@ def real_time_profit_statistics(traders, positions):
     for stock in all_code_avgprice_amount:
         s_origin_total = round(float(stock['caa'][1])*int(stock['caa'][2]), 2)
         delta = stock['s_now_total']-s_origin_total
-        stock_rateR = round(delta/s_origin_total, 2)
+        stock_rateR = round(delta/s_origin_total, 4)
         stock['return'] = delta
         stock['rateR'] = stock_rateR
     # 加上余额求差值
@@ -583,7 +585,7 @@ def real_time_profit_statistics(traders, positions):
         # 本金
         user_id_origin_total = [float(i['data'][0]) for i in all_user_total_balance if user_id in list(i.values())][0]
         # 算收益率
-        AllrateR = round((user_id_a_total-user_id_origin_total)/user_id_origin_total, 3)
+        AllrateR = round((user_id_a_total-user_id_origin_total)/user_id_origin_total, 4)
         stat = {'user_id': user_id, 'stat': [{'date': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                               'balance': str(user_id_now_balance),
                                               'AllrateR': str(AllrateR)}],
