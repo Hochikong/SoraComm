@@ -8,6 +8,7 @@
 from flask import json
 from functools import reduce
 from datetime import datetime
+from retrying import retry
 import uuid
 import random
 import string
@@ -394,6 +395,7 @@ def fetch_profitstat(address, port, username, passwd, target_db, traders, positi
     return cursors
 
 
+@retry(stop_max_attempt_number=5)
 def compare_when_matching(per_order):  # 尚未支持融券
     """
     针对订单数据中的方向和价格，判定是否能成交，买单若高于现价则按现价成交，卖单若低于现价也按现价成交
