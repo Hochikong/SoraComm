@@ -80,7 +80,7 @@ def helper_print():
     print(' -a  查询所有用户信息', '\n')
     print('signal: 修改撮合服务信号决定是否进行撮合')
     print(' -r  运行')
-    print(' -h  停止')
+    print(' -h  停止', '\n')
     print('exit: 退出工具', '\n')
     print('目前所有可用参数均强制使用')
 
