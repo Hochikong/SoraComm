@@ -210,7 +210,7 @@ def clean_order(order_data):
     order_data.pop('_id')
     order_data['tprice'] = str(0.0)
     order_data['status'] = 'cancel'
-    order_data['done_time'] = time.strftime("%Y-%m-%d", time.localtime())
+    order_data['done_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     return order_data
 
 
