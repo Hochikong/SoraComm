@@ -78,6 +78,9 @@ def helper_print():
     print(' -m  指定账户可用资金量', '\n')
     print('check: 查询用户信息')
     print(' -a  查询所有用户信息', '\n')
+    print('signal: 修改撮合服务信号决定是否进行撮合')
+    print(' -r  运行')
+    print(' -h  停止')
     print('exit: 退出工具', '\n')
     print('目前所有可用参数均强制使用')
 
@@ -604,4 +607,21 @@ def real_time_profit_statistics(traders, positions):
             stat['stocks_rateR'].append(datastruct)
         stats.append(stat)
     return stats
+
+
+def update_signal(oms, signal):
+    """
+    更新ordermatch_service表的status字段
+    :param oms: 数据库ordermatch_service集合
+    :param signal: 字符串halt或者run
+    :return:
+    """
+    query = oms.find_one()
+    if query:
+        query.pop('_id')
+        old_status = query['status']
+        oms.update_one({'status': old_status}, {'$set': {'status': signal}})
+    else:
+        data = {'status': signal}
+        oms.insert_one(data)
 
