@@ -318,10 +318,7 @@ def return_for_trans_history(user_id, per_order, data):
     return {'user_id': user_id, 'history': [{'start': time.strftime("%Y-%m-%d", time.localtime()),
                                              'code': per_order['code'],
                                              'name': per_order['name'],
-                                             'amount': per_order['amount'],
-                                             'total': per_order['total'],
-                                             'avgprice': data['avgprice'],
-                                             'cost': data['cost'], }, ]}
+                                             }, ]}
 
 
 def balance_manager(traders, per_order):
@@ -571,18 +568,14 @@ def position_manager(per_order, positions):
                     user_position[code_index][k] = data_update[k]
                 # 更新数据库
                 positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                # return return_for_trans_history(user_id, per_order, data)
             else:
                 # 非增持的情况
                 user_position.append(data)
                 # 更新用户持仓
                 positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                # return return_for_trans_history(user_id, per_order, data)
         else:
             document = {'user_id': user_id, 'position': [data, ]}
             positions.insert_one(document)
-            # 用于写入trans_history
-            # return return_for_trans_history(user_id, per_order, data)
     if per_order['ops'] == 'offer':
         query_result = positions.find_one({'user_id': user_id})
         # 此处不再执行用户是否存在的查询，交给REST接口处理
@@ -609,7 +602,7 @@ def position_manager(per_order, positions):
             # 更新总额
             origin_position['total'] = str(int(remain_amount) * newavgprice)
             # 追加cost(cost字段是不断累加的)
-            origin_position['cost'] = str(float(origin_position['cost']) + float(per_order['cost']))
+            origin_position['cost'] = str(round(float(origin_position['cost']) + float(per_order['cost']), 2))
 
             position_data.pop(d_index)
             position_data.append(origin_position)
@@ -619,59 +612,7 @@ def position_manager(per_order, positions):
             position_data.pop(d_index)
             # 重新写入数据库
             positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})
-        # 更新trans_history
-        # return {'end': time.strftime("%Y-%m-%d", time.localtime()),
-        #         'code': per_order['code'],
-        #        'user_id': user_id,
-        #         'current_price': tushare.get_realtime_quotes(per_order['code'])['price'][0]}
 
 
-def transhistory_manager(trans_history, pm_return):
-    """
-    完整交易记录管理（非full_history）
-    :param trans_history: 交易记录表
-    :param pm_return: position_manager返回的数据
-    :return:
-    """
-    # 结算更新
-    # 卖出结算
-    if len(pm_return) == 4:
-        user_id = pm_return['user_id']
-        code = pm_return['code']
-        query_result = trans_history.find_one({'user_id': user_id})
-        history = query_result['history']
-        # 买入时写入的不含end的数据
-        data = [d for d in history if 'end' not in list(d.keys()) and code in list(d.values())][0]
-        data_index = history.index(data)
-        # 计算损益
-        the_return = round((float(pm_return['current_price']) - float(data['avgprice'])) * int(data['amount']) -
-                           float(data['cost']), 2)
-        return_rate = round((the_return/float(data['total'])), 2)
-        # 计算日期
-        str_now_1 = pm_return['end'].split('-')
-        str_ago_2 = data['start'].split('-')
-        str_to_int_now = [int(ele) for ele in str_now_1]
-        str_to_int_ago = [int(ele) for ele in str_ago_2]
-        now = datetime(str_to_int_now[0], str_to_int_now[1], str_to_int_now[2])
-        ago = datetime(str_to_int_ago[0], str_to_int_ago[1], str_to_int_ago[2])
-        delta = (now-ago).days
-        # 补充数据
-        data['end'] = pm_return['end']
-        data['the_return'] = str(the_return)
-        data['rateofR'] = str(return_rate)
-        data['during'] = str(delta)
-        history[data_index] = data
-        # 写入数据库
-        trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
-    # 买入结算
-    if len(pm_return) == 2:
-        user_id = pm_return['user_id']
-        query_result = trans_history.find_one({'user_id': user_id})
-        # 如果用户已存在
-        if query_result:
-            history = query_result['history']
-            history.append(pm_return['history'][0])
-            trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
-        else:
-            trans_history.insert_one(pm_return)
+
 
