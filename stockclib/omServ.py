@@ -131,7 +131,7 @@ def check_orders(jdict, authinfo, taxR, feeR, positions):
 
         # 费用验证(仅验证能不能交易)
         if jdict['ops'] == 'bid':
-            ordertotal = round(int(order['amount']) * float(jdict['price']), 2)
+            ordertotal = round(int(order['amount']) * float(jdict['price']), 2)  # total不含费用，只是总额的意思
             ordertax = 0.0  # 输入的税率和手续费率默认为float型,使用round截断小数
             orderfee = round(ordertotal*feeR, 2)
             if orderfee < 5:
@@ -256,6 +256,18 @@ def cost_cal_for_om(per_order, feeR, taxR):
     per_order['tax'] = str(ntax)
     per_order['fee'] = str(nfee)
     return per_order
+
+
+def avgprice_update(avgp_multi_amount, sell_total_plus_cost, remain_amount):
+    """
+    用于卖出部分股票时更新现价
+    :param avgp_multi_amount: 持仓中的均价*数量
+    :param sell_total_plus_cost: 卖出总额+成本
+    :param remain_amount: 余下的股票数量
+    :return: 最新均价
+    """
+    result = (avgp_multi_amount - sell_total_plus_cost) / remain_amount
+    return result
 
 
 def generate_positions(per_order):
@@ -423,109 +435,15 @@ def compare_when_matching(per_order):  # 尚未支持融券
             return 'Wait'
 
 
-def position_manager(per_order, positions):
+def matching_without_waiting(per_order):
     """
-    成交时调整用户的仓位数据
+    忽略价格直接成交
     :param per_order: 订单数据
-    :param positions: 仓位collection
-    :return: 返回的数据用于修改用户余额
+    :return: 价格字符串
     """
-    user_id = per_order['user_id']
-    if per_order['ops'] == 'bid':
-        data = generate_positions(per_order)
-        # 检查用户是否存在position表中
-        query_result = positions.find_one({'user_id': user_id})
-        # 如果已存在
-        if query_result:
-            user_position = query_result['position']
-            # 检查是否已经持有该股票
-            codes = [p['code'] for p in user_position]
-            # 增持
-            if per_order['code'] in codes:
-                # 计算增持时total等数据的新变化
-                code_index = codes.index(per_order['code'])
-                data_update = generate_positions_update(code_index, per_order, user_position)
-                # 把更新应用到原数据持仓信息里
-                for k in list(data_update.keys()):
-                    user_position[code_index][k] = data_update[k]
-                # 更新数据库
-                positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                return return_for_trans_history(user_id, per_order, data)
-            else:
-                # 非增持的情况
-                user_position.append(data)
-                # 更新用户持仓
-                positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                return return_for_trans_history(user_id, per_order, data)
-        else:
-            document = {'user_id': user_id, 'position': [data, ]}
-            positions.insert_one(document)
-            # 用于写入trans_history
-            return return_for_trans_history(user_id, per_order, data)
-    if per_order['ops'] == 'offer':
-        query_result = positions.find_one({'user_id': user_id})
-        # 此处不再执行用户是否存在的查询，交给REST接口处理
-        position_data = query_result['position']
-        # 清除指定记录
-        d_index = [position_data.index(d) for d in position_data if d['code'] == per_order['code']][0]
-        position_data.pop(d_index)
-        # 重新写入数据库
-        positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})
-        # 更新trans_history
-        return {'end': time.strftime("%Y-%m-%d", time.localtime()),
-                'code': per_order['code'],
-                'user_id': user_id,
-                'current_price': tushare.get_realtime_quotes(per_order['code'])['price'][0]}
+    price = float(per_order['price'])
+    return str(price)
 
-
-def transhistory_manager(trans_history, pm_return):
-    """
-    接收来自position_manager的数据对交易信息进行记录，方便日后结算
-    :param trans_history: 交易记录集合
-    :param pm_return: pm返回的数据
-    :return:
-    """
-    # 结算更新
-    # 卖出结算
-    if len(pm_return) == 4:
-        user_id = pm_return['user_id']
-        code = pm_return['code']
-        query_result = trans_history.find_one({'user_id': user_id})
-        history = query_result['history']
-        # 买入时写入的不含end的数据
-        data = [d for d in history if 'end' not in list(d.keys()) and code in list(d.values())][0]
-        data_index = history.index(data)
-        # 计算损益
-        the_return = round((float(pm_return['current_price'])-float(data['avgprice']))*int(data['amount'])
-                           -float(data['cost']), 2)
-        return_rate = round((the_return/float(data['total'])), 2)
-        # 计算日期
-        str_now_1 = pm_return['end'].split('-')
-        str_ago_2 = data['start'].split('-')
-        str_to_int_now = [int(ele) for ele in str_now_1]
-        str_to_int_ago = [int(ele) for ele in str_ago_2]
-        now = datetime(str_to_int_now[0], str_to_int_now[1], str_to_int_now[2])
-        ago = datetime(str_to_int_ago[0], str_to_int_ago[1], str_to_int_ago[2])
-        delta = (now-ago).days
-        # 补充数据
-        data['end'] = pm_return['end']
-        data['the_return'] = str(the_return)
-        data['rateofR'] = str(return_rate)
-        data['during'] = str(delta)
-        history[data_index] = data
-        # 写入数据库
-        trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
-    # 买入结算
-    if len(pm_return) == 2:
-        user_id = pm_return['user_id']
-        query_result = trans_history.find_one({'user_id': user_id})
-        # 如果用户已存在
-        if query_result:
-            history = query_result['history']
-            history.append(pm_return['history'][0])
-            trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
-        else:
-            trans_history.insert_one(pm_return)
 
 
 def real_time_profit_statistics(traders, positions):
@@ -541,7 +459,7 @@ def real_time_profit_statistics(traders, positions):
     all_positions = list(positions.find())
 
     # 无持仓用户计算方法： 余额与本金差值除本金
-    all_user_with_positions = [p['user_id'] for p in all_positions]  # ['user_id','user_id']
+    all_user_with_positions = [p['user_id'] for p in all_positions if len(p['position']) > 0]  # ['user_id','user_id']
     all_user_without_positions = [u for u in all_users if u['user_id'] not in all_user_with_positions]
     for u in all_user_without_positions:
         u_balance = float(u['balance'])
@@ -625,4 +543,126 @@ def update_signal(oms, signal):
     else:
         data = {'status': signal}
         oms.insert_one(data)
+
+
+def position_manager(per_order, positions):
+    """
+    仓位管理函数
+    :param per_order: 一张订单
+    :param positions: positions集合
+    :return:
+    """
+    user_id = per_order['user_id']
+    if per_order['ops'] == 'bid':
+        data = generate_positions(per_order)
+        # 检查用户是否存在position表中
+        query_result = positions.find_one({'user_id': user_id})
+        # 如果已存在
+        if query_result:
+            user_position = query_result['position']
+            # 检查是否已经持有该股票
+            codes = [p['code'] for p in user_position]
+            # 增持
+            if per_order['code'] in codes:
+                # 计算增持时total等数据的新变化
+                code_index = codes.index(per_order['code'])
+                data_update = generate_positions_update(code_index, per_order, user_position)
+                # 把更新应用到原数据持仓信息里
+                for k in list(data_update.keys()):
+                    user_position[code_index][k] = data_update[k]
+                # 更新数据库
+                positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
+                # return return_for_trans_history(user_id, per_order, data)
+            else:
+                # 非增持的情况
+                user_position.append(data)
+                # 更新用户持仓
+                positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
+                # return return_for_trans_history(user_id, per_order, data)
+        else:
+            document = {'user_id': user_id, 'position': [data, ]}
+            positions.insert_one(document)
+            # 用于写入trans_history
+            # return return_for_trans_history(user_id, per_order, data)
+    if per_order['ops'] == 'offer':
+        query_result = positions.find_one({'user_id': user_id})
+        # 此处不再执行用户是否存在的查询，交给REST接口处理
+        position_data = query_result['position']
+
+        d_index = [position_data.index(d) for d in position_data if d['code'] == per_order['code']][0]
+
+        # 减持
+        if int(per_order['amount']) < int(position_data[d_index]['amount']):
+            origin_position = position_data[d_index]
+            # 更新数量
+            origin_position['amount'] = str(int(origin_position['amount'])-int(per_order['amount']))
+            # 更新成本
+            avgp_multi_amount = round(int(origin_position['amount']) * float(origin_position['avgprice']), 3)
+            sell_total_plus_cost = round((int(per_order['amount']) * float(per_order['tprice'])) + float(per_order['cost']), 3)
+            remain_amount = origin_position['amount']
+            newavgprice = round(avgprice_update(avgp_multi_amount, sell_total_plus_cost, int(remain_amount)), 2)
+            origin_position['avgprice'] = str(newavgprice)
+            position_data.pop(d_index)
+            position_data.append(origin_position)
+            positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})
+        # 平仓
+        if int(per_order['amount']) == int(position_data[d_index]['amount']):
+            position_data.pop(d_index)
+            # 重新写入数据库
+            positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})
+        # 更新trans_history
+        # return {'end': time.strftime("%Y-%m-%d", time.localtime()),
+        #         'code': per_order['code'],
+        #        'user_id': user_id,
+        #         'current_price': tushare.get_realtime_quotes(per_order['code'])['price'][0]}
+
+
+def transhistory_manager(trans_history, pm_return):
+    """
+    完整交易记录管理（非full_history）
+    :param trans_history: 交易记录表
+    :param pm_return: position_manager返回的数据
+    :return:
+    """
+    # 结算更新
+    # 卖出结算
+    if len(pm_return) == 4:
+        user_id = pm_return['user_id']
+        code = pm_return['code']
+        query_result = trans_history.find_one({'user_id': user_id})
+        history = query_result['history']
+        # 买入时写入的不含end的数据
+        data = [d for d in history if 'end' not in list(d.keys()) and code in list(d.values())][0]
+        data_index = history.index(data)
+        # 计算损益
+        the_return = round((float(pm_return['current_price']) - float(data['avgprice'])) * int(data['amount']) -
+                           float(data['cost']), 2)
+        return_rate = round((the_return/float(data['total'])), 2)
+        # 计算日期
+        str_now_1 = pm_return['end'].split('-')
+        str_ago_2 = data['start'].split('-')
+        str_to_int_now = [int(ele) for ele in str_now_1]
+        str_to_int_ago = [int(ele) for ele in str_ago_2]
+        now = datetime(str_to_int_now[0], str_to_int_now[1], str_to_int_now[2])
+        ago = datetime(str_to_int_ago[0], str_to_int_ago[1], str_to_int_ago[2])
+        delta = (now-ago).days
+        # 补充数据
+        data['end'] = pm_return['end']
+        data['the_return'] = str(the_return)
+        data['rateofR'] = str(return_rate)
+        data['during'] = str(delta)
+        history[data_index] = data
+        # 写入数据库
+        trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
+    # 买入结算
+    if len(pm_return) == 2:
+        user_id = pm_return['user_id']
+        query_result = trans_history.find_one({'user_id': user_id})
+        # 如果用户已存在
+        if query_result:
+            history = query_result['history']
+            history.append(pm_return['history'][0])
+            trans_history.update_one({'user_id': user_id}, {'$set': {'history': history}})
+        else:
+            trans_history.insert_one(pm_return)
 
