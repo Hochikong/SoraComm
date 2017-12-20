@@ -445,7 +445,6 @@ def matching_without_waiting(per_order):
     return str(price)
 
 
-
 def real_time_profit_statistics(traders, positions):
     """
     提供实时总收益率和单股票的盈亏和盈亏率
@@ -594,14 +593,24 @@ def position_manager(per_order, positions):
         # 减持
         if int(per_order['amount']) < int(position_data[d_index]['amount']):
             origin_position = position_data[d_index]
-            # 更新数量
-            origin_position['amount'] = str(int(origin_position['amount'])-int(per_order['amount']))
-            # 更新成本
+
+            # 均价乘剩余数量
             avgp_multi_amount = round(int(origin_position['amount']) * float(origin_position['avgprice']), 3)
+            # 卖出总额加费用
             sell_total_plus_cost = round((int(per_order['amount']) * float(per_order['tprice'])) + float(per_order['cost']), 3)
+            # 剩余股票数
+            # 更新数量
+            origin_position['amount'] = str(int(origin_position['amount']) - int(per_order['amount']))
             remain_amount = origin_position['amount']
+
+            # 更新持仓均价
             newavgprice = round(avgprice_update(avgp_multi_amount, sell_total_plus_cost, int(remain_amount)), 2)
             origin_position['avgprice'] = str(newavgprice)
+            # 更新总额
+            origin_position['total'] = str(int(remain_amount) * newavgprice)
+            # 追加cost(cost字段是不断累加的)
+            origin_position['cost'] = str(float(origin_position['cost']) + float(per_order['cost']))
+
             position_data.pop(d_index)
             position_data.append(origin_position)
             positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})

@@ -1,4 +1,4 @@
-StockClib 0.3
+StockClib 0.3.1
 =========
 Project Sora depends on this library. Include these modules:  
 - dtSearch
@@ -7,6 +7,9 @@ Project Sora depends on this library. Include these modules:
 - omServ
 
 ## Change log
+- 0.3.1:  
+修复了一堆恶性bug
+
 - 0.3:   
 Add omServ for order matching server  
 Disable parallel jieba
