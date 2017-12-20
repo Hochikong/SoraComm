@@ -295,7 +295,7 @@ def generate_positions_update(code_index, per_order, user_position):
     return data_update
 
 
-def return_for_tran_history(user_id, per_order, data):
+def return_for_trans_history(user_id, per_order, data):
     """
     返回合适的数据供写入trans_history表
     :param user_id: 用户id
@@ -450,18 +450,18 @@ def position_manager(per_order, positions):
                     user_position[code_index][k] = data_update[k]
                 # 更新数据库
                 positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                return return_for_tran_history(user_id, per_order, data)
+                return return_for_trans_history(user_id, per_order, data)
             else:
                 # 非增持的情况
                 user_position.append(data)
                 # 更新用户持仓
                 positions.update_one({'user_id': user_id}, {'$set': {'position': user_position}})
-                return return_for_tran_history(user_id, per_order, data)
+                return return_for_trans_history(user_id, per_order, data)
         else:
             document = {'user_id': user_id, 'position': [data, ]}
             positions.insert_one(document)
             # 用于写入trans_history
-            return return_for_tran_history(user_id, per_order, data)
+            return return_for_trans_history(user_id, per_order, data)
     if per_order['ops'] == 'offer':
         query_result = positions.find_one({'user_id': user_id})
         # 此处不再执行用户是否存在的查询，交给REST接口处理
@@ -597,14 +597,15 @@ def real_time_profit_statistics(traders, positions):
                                     'stocks_rateR': []}
         # 写入单只股票的盈亏
         for s in all_code_avgprice_amount:
-            datastruct = {'code': s['caa'][0],
-                          'avgprice': s['caa'][1],
-                          'amount': s['caa'][2],
-                          'current_price': s['now_price'],
-                          'current_total': str(s['s_now_total']),
-                          'return': str(s['return']),
-                          'rateR': str(s['rateR'])}
-            stat['stocks_rateR'].append(datastruct)
+            if user_id == s['user_id']:
+                datastruct = {'code': s['caa'][0],
+                              'avgprice': s['caa'][1],
+                              'amount': s['caa'][2],
+                              'current_price': s['now_price'],
+                              'current_total': str(s['s_now_total']),
+                              'return': str(s['return']),
+                              'rateR': str(s['rateR'])}
+                stat['stocks_rateR'].append(datastruct)
         stats.append(stat)
     return stats
 
