@@ -7,10 +7,10 @@
 
 from flask import json
 from functools import reduce
-from datetime import datetime
 from retrying import retry
 import uuid
 import random
+import logging
 import string
 import time
 import pymongo
@@ -614,5 +614,22 @@ def position_manager(per_order, positions):
             positions.update_one({'user_id': user_id}, {'$set': {'position': position_data}})
 
 
+def generate_logger(name, log_file, level=logging.INFO):
+    """
+    通用的日志记录模块，用于不同功能的日志记录工作
+    :param name: logger名
+    :param log_file: 日志文件
+    :param level: 日志级别，默认INFO
+    :return: logger对象
+    """
+    formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 
