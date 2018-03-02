@@ -616,7 +616,8 @@ def position_manager(per_order, positions):
 
 def generate_logger(name, log_file, level=logging.INFO):
     """
-    通用的日志记录模块，用于不同功能的日志记录工作
+    通用的日志记录模块，用于不同功能的日志记录工作,设置了level之后需要调用相应的方法才能记录日志，
+    但level是WARNING的话调用info()就不会留下记录
     :param name: logger名
     :param log_file: 日志文件
     :param level: 日志级别，默认INFO
