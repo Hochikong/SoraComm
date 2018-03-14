@@ -210,11 +210,14 @@ def clean_order(order_data):
     :param order_data: 来自原始订单数据的数据
     :return:
     """
-    order_data.pop('_id')
-    order_data['tprice'] = str(0.0)
-    order_data['status'] = 'cancel'
-    order_data['done_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    return order_data
+    if order_data:
+        order_data.pop('_id')
+        order_data['tprice'] = str(0.0)
+        order_data['status'] = 'cancel'
+        order_data['done_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        return order_data
+    else:
+        pass
 
 
 def clean_order_for_om(per_order, price):
