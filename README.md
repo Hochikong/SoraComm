@@ -14,12 +14,12 @@ Project Sora depends on this library. Include these modules:
 Add omServ for order matching server  
 Disable parallel jieba
 
-## Platform and dependence
+## Platform and dependency
 - Platform:  
 Support Windows and Linux  
 Python 3.x
 
-- Python dependence:  
+- Python dependency:  
 neo4j-driver  
 bs4  
 jieba  
@@ -28,7 +28,7 @@ requests
 lxml  
 selenium  
 
-- Other dependence  
+- Others
 Lastest Firefox(headless mode support)  
 Geckodriver 
 
