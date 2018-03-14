@@ -1,4 +1,4 @@
-StockClib 0.3.1
+StockClib 0.3.2
 =========
 Project Sora depends on this library. Include these modules:  
 - dtSearch
@@ -7,6 +7,9 @@ Project Sora depends on this library. Include these modules:
 - omServ
 
 ## Change log
+- 0.3.2
+为交易服务器增加了一个打印操作记录为csv文件的函数
+
 - 0.3.1:  
 修复了一堆恶性bug
 

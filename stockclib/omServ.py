@@ -640,3 +640,93 @@ def generate_logger(name, log_file, level=logging.INFO):
     return logger
 
 
+def generate(token, tds, fhist):
+    """
+    用于打印操作记录
+    :param token: 用户的trade token
+    :param tds: traders集合
+    :param fhist: full_history集合
+    :return:
+    """
+    query = list(tds.find())
+    user_id = [i['user_id'] for i in query if token == i['token']][0]
+
+    full_history = list(fhist.find())
+
+    all_history = []
+    for i0 in full_history:
+        if i0['user_id'] == user_id:
+            all_history.append(i0)
+
+    if len(all_history) > 0:
+        keys = list(all_history[0].keys())
+        keys.remove('_id')
+
+        bids = []
+        offers = []
+        for i in all_history:
+            if i['status'] == 'done':
+                if i['ops'] == 'bid':
+                    bids.append(i)
+                if i['ops'] == 'offer':
+                    offers.append(i)
+            else:
+                pass
+
+        if len(bids) > 0 and len(offers) > 0:
+            # 返回单独的买卖记录和完整操作历史
+            for x in bids:
+                x.pop('_id')
+            for y in offers:
+                y.pop('_id')
+
+            head = reduce(lambda x0, y0: x0+','+y0, keys)+'\n'
+            body = []
+            for dt in all_history:
+                tmp = [dt[k0] for k0 in keys]
+                body.append(tmp)
+            newbody = []
+            for l0 in body:
+                newbody.append(reduce(lambda x0, y0: x0+','+y0, l0)+'\n')
+            # 全部操作历史
+            newbody.append(' '*len(head)+'\n')
+            # 转成字符串
+            newbody = reduce(lambda xn, yn: xn+yn, newbody)
+
+            # 打印单只股票的完整操作
+            above_head = 'Full History: '+'\n'
+            stocks_ophist = '-'*len(head)+'\n'
+            readme = 'Bid and Offer: '+'\n'
+            bd0_b = [[i1[k1] for k1 in keys] for i1 in bids]
+            bd1_o = [[i1[k2] for k2 in keys] for i1 in offers]
+            bid_readme = 'Bid: '+'\n'
+            offer_readme = 'Offer: '+'\n'
+            bid_body = reduce(lambda xb0, yb0: xb0+yb0, [reduce(lambda x0, y0: x0+','+y0, br)+'\n' for br in bd0_b])
+            offer_body = reduce(lambda xo0, yo0: xo0+yo0, [reduce(lambda x0, y0: x0+','+y0, br)+'\n' for br in bd1_o])
+
+            # 构成csv
+            elements = [above_head, '\n', head, newbody, readme, '\n', bid_readme, stocks_ophist, bid_body,
+                        '\n', offer_readme, stocks_ophist, offer_body, '\n']
+
+            target = reduce(lambda xt, yt: xt+yt, elements)
+            yield target
+        else:
+            # 仅返回全部操作记录
+            above_head = 'Full History: ' + '\n'
+            head = reduce(lambda x0, y0: x0 + ',' + y0, keys) + '\n'
+            body = []
+            for dt in all_history:
+                tmp = [dt[k0] for k0 in keys]
+                body.append(tmp)
+            newbody = []
+            for l0 in body:
+                newbody.append(reduce(lambda x0, y0: x0 + ',' + y0, l0) + '\n')
+            newbody = reduce(lambda xn, yn: xn + yn, newbody)
+
+            # 构成csv
+            elements = [above_head, '\n', head, newbody]
+            target = reduce(lambda xt, yt: xt + yt, elements)
+            yield target
+    else:
+        yield "No History"
+
