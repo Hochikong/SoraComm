@@ -640,7 +640,7 @@ def generate_logger(name, log_file, level=logging.INFO):
     return logger
 
 
-def generate(token, tds, fhist):
+def generate_fhist_csv(token, tds, fhist):
     """
     用于打印操作记录
     :param token: 用户的trade token
