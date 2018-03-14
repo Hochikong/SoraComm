@@ -512,10 +512,13 @@ def real_time_profit_statistics(traders, positions):
                                               'balance': str(user_id_now_balance),
                                               'AllrateR': str(AllrateR)}],
                                     'stocks_rateR': []}
+
+        all_names_with_code = [(u['code'],u['name']) for u in all_positions[0]['position']]
         # 写入单只股票的盈亏
         for s in all_code_avgprice_amount:
             if user_id == s['user_id']:
-                datastruct = {'code': s['caa'][0],
+                datastruct = {'name': [i[1] for i in all_names_with_code if '000725' in i][0],
+                              'code': s['caa'][0],
                               'avgprice': s['caa'][1],
                               'amount': s['caa'][2],
                               'current_price': s['now_price'],
