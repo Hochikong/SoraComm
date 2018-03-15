@@ -141,7 +141,7 @@ def check_orders(jdict, authinfo, taxR, feeR, positions):
             else:
                 order['price'] = jdict['price']
                 order['total'] = str(ordertotal)
-                order['tax'] = ordertax   # 买入不收税
+                order['tax'] = str(ordertax)   # 买入不收税
                 order['fee'] = str(orderfee)
                 order['cost'] = str(round(ordertax+orderfee, 2))
                 order['order_time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
